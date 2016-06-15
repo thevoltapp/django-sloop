@@ -10,7 +10,7 @@ from django.template.defaultfilters import truncatechars
 
 from sloop.constants import *
 from sloop.tasks import send_push_notification, send_silent_push_notification
-from volt.helpers.sloop_helper import get_backend_class
+from sloop.backends import get_backend_class
 
 backend_class = get_backend_class()
 
