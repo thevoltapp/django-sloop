@@ -10,7 +10,9 @@ from django.template.defaultfilters import truncatechars
 
 from sloop.constants import *
 from sloop.tasks import send_push_notification, send_silent_push_notification
+from volt.helpers.sloop_helper import get_backend_class
 
+backend_class = get_backend_class()
 
 class PushNotificationMixin(object):
     """
@@ -88,7 +90,6 @@ class DeviceBaseClass(models.Model):
         choices=DEVICE_PUSH_TOKEN_TYPES,
         default=DEVICE_PUSH_TOKEN_TYPE_IOS
     )
-    device_model = models.CharField(_("Device Model"), max_length=255, blank=True, null=False)
 
     class Meta:
         verbose_name = _("Device Push Token")
@@ -114,7 +115,7 @@ class DeviceBaseClass(models.Model):
         """
         A placeholder for the extra push data.
         """
-        return extra_data
+        return extra_data or dict()
 
     def prepare_message(self, message):
         """
@@ -144,43 +145,20 @@ class DeviceBaseClass(models.Model):
         """
         Sends push message using device token
         """
-        extra_data = self.get_extra_data(extra)
-        if url:
-            extra_data["url"] = url
-
-        data = {
-            'device_token': self.token,
-            'device_type': self.device_type,
-            'alert': self.prepare_message(message),
-            'sound': sound,
-            'custom': extra_data,
-            'badge': self.get_badge_count(),
-            'category': category
-        }
-        data.update(kwargs)
-        self._send_payload(data)
-        return True
+        extra = self.get_extra_data(extra)
+        message = self.prepare_message(message)
+        badge_count = self.get_badge_count()
+        backend = backend_class(device=self)
+        response = backend.send_push_notification(message, url, badge_count, sound, extra, category, *args, **kwargs)
+        return response
 
     def send_silent_push_notification(self, extra, content_available, *args, **kwargs):
-        extra_data = self.get_extra_data(extra)
 
-        data = {
-            'device_token': self.token,
-            'device_type': self.device_type,
-            'content-available': content_available,
-            'sound': '',
-            'badge': self.get_badge_count(),
-            'custom': extra_data
-        }
-        data.update(kwargs)
-        self._send_payload(data)
-        return True
-
-    def _send_payload(self, data):
-        headers = {'content-type': 'application/json'}
-        r = requests.post(self.get_server_call_url(), data=json.dumps(data), headers=headers)
-        r.raise_for_status()
-        self.process_sloop_response(r.json())
+        extra = self.get_extra_data(extra)
+        badge_count = self.get_badge_count()
+        backend = backend_class(device=self)
+        response = backend.send_silent_push_notification(extra, badge_count, content_available, *args, **kwargs)
+        return response
 
     def translate_message(self, message, current_language):
         token_language_code = self.locale[:2] if self.locale else "en"
