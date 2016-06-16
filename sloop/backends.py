@@ -78,18 +78,18 @@ class SNSBackend(BaseBackend):
 
     def generate_gcm_push_notification_message(self, message, url, badge_count, sound, extra, category, *args, **kwargs):
         data = {
-            'message': message,
+            'alert': message,
             'sound': sound,
             'custom': extra,
             'badge': badge_count,
-            'category': category
+            'category': category,
+            'custom_url': url
         }
+
         data.update(kwargs)
         data_bundle = {
             'data': data
         }
-        if url:
-            data_bundle["to"] = url
         data_string = json.dumps(data_bundle, ensure_ascii=False)
         return {
             'GCM': data_string
