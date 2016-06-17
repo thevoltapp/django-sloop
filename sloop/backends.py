@@ -77,7 +77,10 @@ class SNSBackend(BaseBackend):
         return self._send_payload(data)
 
     def generate_gcm_push_notification_message(self, message, url, badge_count, sound, extra, category, *args, **kwargs):
+        if url:
+            extra['url'] = url
         data = {
+            'url': url,
             'alert': message,
             'sound': sound,
             'custom': extra,
@@ -115,6 +118,7 @@ class SNSBackend(BaseBackend):
         if url:
             extra["url"] = url
         data = {
+            'url': url,
             'alert': message,
             'sound': sound,
             'custom': extra,
