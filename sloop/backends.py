@@ -174,11 +174,15 @@ class SNSBackend(BaseBackend):
         if settings.DEBUG:
             print "ARN:" + endpoint_arn
             print message
-        publish_result = self.connection.publish(
-            target_arn=endpoint_arn,
-            message=message,
-            message_structure='json'
-        )
-        if settings.DEBUG:
-            print publish_result
-        return publish_result
+        try:
+            publish_result = self.connection.publish(
+                target_arn=endpoint_arn,
+                message=message,
+                message_structure='json'
+            )
+            if settings.DEBUG:
+                print publish_result
+            return publish_result
+        except boto.exception.BotoServerError, err: 
+            print err
+            return None
